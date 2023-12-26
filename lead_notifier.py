@@ -17,7 +17,7 @@ username = os.getenv('USERNAME_CR')
 password = os.getenv('PASSWORD_CR')
 url = '<YOUR WHATSAPP API CALL>'
 headers = {
-    'API_KEY': 'YOUR API KEY',
+    'API_KEY': os.getenv('API_KEY'),
     'Content-Type': 'application/json'
     }
 
