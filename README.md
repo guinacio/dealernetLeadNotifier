@@ -57,4 +57,4 @@ The script will run continuously, checking for new leads at the specified interv
 - Adjust the `NOTIFY_ERROR` variable to control error notifications.
 
 ## Screenshot
-![image](https://github.com/guinacio/dealernetLeadNotifier/assets/2325925/044d93d1-f0d7-429d-96f6-45cd0b031fe5)
+<img src="https://github.com/guinacio/dealernetLeadNotifier/assets/2325925/044d93d1-f0d7-429d-96f6-45cd0b031fe5)" width="300" />
