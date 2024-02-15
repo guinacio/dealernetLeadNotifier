@@ -144,9 +144,9 @@ def run_script():
                         leadColor = frame.inner_text(f'#span_W0073vCOR_DESCRICAO_{formattedNumber}')
                         dataLead = {
                             "contact": "<YOUR GROUP OR CONTACT NUMBER TO GET NOTIFIED>",
-                            'message': '['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor
+                            'message': f'[{DEALERSHIP}] Lead encontrado: {leadDate} | {leadClient} | {leadCar} | {leadColor}'
                         }
-                        print('['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor)
+                        print(f'[{DEALERSHIP}] Lead encontrado: {leadDate} | {leadClient} | {leadCar} | {leadColor}')
                         requests.post(url, headers=headers, json=dataLead)
                         time.sleep(2)
                     nLeads += 1
