@@ -6,6 +6,7 @@ import logging
 import requests
 import random
 import sys
+from datetime import datetime
 
 load_dotenv('credentials.env')
 
@@ -27,12 +28,14 @@ TMP_FILE_PATH = 'last_run.tmp' #Save the amount of leads of the last run. For mu
 def get_last_run_n_leads():
     if os.path.exists(TMP_FILE_PATH):
         with open(TMP_FILE_PATH, 'r') as file:
-            return int(file.read())
-    return 0
+            data = file.read().split(',')
+            if len(data) == 3:
+                return int(data[0]), data[1], data[2]
+    return 0, '', ''
 
-def set_last_run_n_leads(value):
+def set_last_run_n_leads(value, leadClient, leadDate):
     with open(TMP_FILE_PATH, 'w') as file:
-        file.write(str(value))
+        file.write(f"{value},{leadClient},{leadDate}")
 
 def error_exception(msg):
     if NOTIFY_ERROR:
@@ -45,14 +48,16 @@ def error_exception(msg):
     print(msg)
     sys.exit()
 
+def is_newer_date(date1_str, date2_str, date_format='%d/%m/%Y %H:%M'):
+    date1 = datetime.strptime(date1_str, date_format)
+    date2 = datetime.strptime(date2_str, date_format)
+    return date1 > date2
+
 #logging file for errors
 logging.basicConfig(filename='playwright_errors.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-boolLead = True
-
 def run_script():
-    global boolLead
-    lastRunNLeads = get_last_run_n_leads()
+    lastRunNLeads, lastLeadClient, lastLeadDate = get_last_run_n_leads()
 
     with sync_playwright() as p:
         try:
@@ -131,47 +136,73 @@ def run_script():
             error_exception(msg)
 
         elementExists = True
-        nLeads = 1
+        nLeads = lastRunNLeads
+        lastLeadClientAux = lastLeadClient
+
         try:
-            while elementExists:
-                formattedNumber = str(nLeads).zfill(4)
-                elementExists = frame.query_selector(f'tr#W0073GridContainerRow_{formattedNumber}')
-                if elementExists:
-                    if boolLead:
-                        leadDate = frame.inner_text(f'#span_W0073vRECEPCAO_DATACRIACAO_{formattedNumber}')
-                        leadClient = frame.inner_text(f'#span_W0073vRECEPCAO_NOME_{formattedNumber}')
+            elementExists = frame.query_selector(f'tr#W0073GridContainerRow_0001')
+            if elementExists:
+                leadClient = frame.inner_text(f'#span_W0073vRECEPCAO_NOME_0001')
+                leadDate = frame.inner_text(f'#span_W0073vRECEPCAO_DATACRIACAO_0001')
+                
+                nLeads = 1
+                while elementExists:
+                    formattedNumber = str(nLeads).zfill(4)
+                    leadClient = frame.inner_text(f'#span_W0073vRECEPCAO_NOME_{formattedNumber}')
+                    leadDate = frame.inner_text(f'#span_W0073vRECEPCAO_DATACRIACAO_{formattedNumber}')
+                    
+                    if lastLeadClient and lastLeadDate:
+                        isNewerLead = is_newer_date(leadDate, lastLeadDate)
+
+                        if isNewerLead:
+                            leadCar = frame.inner_text(f'#span_W0073vFAMILIAVEICULO_DESCRICAO_{formattedNumber}')
+                            leadColor = frame.inner_text(f'#span_W0073vCOR_DESCRICAO_{formattedNumber}')
+                            dataLead = {
+                                "contact": "554888696951-1534418585@g.us",
+                                'message': '['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor
+                            }
+                            print('['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor)
+                            requests.post(url, headers=headers, json=dataLead)
+                            time.sleep(2)
+                            print(f'1nLeads: {nLeads}')
+                            print(f'1lastRunNLeads: {lastRunNLeads}')
+                            print(f'1lastClient: {lastLeadClientAux}')
+                            
+                            lastLeadClient = leadClient
+                            lastLeadDate = leadDate
+
+                    else:
                         leadCar = frame.inner_text(f'#span_W0073vFAMILIAVEICULO_DESCRICAO_{formattedNumber}')
                         leadColor = frame.inner_text(f'#span_W0073vCOR_DESCRICAO_{formattedNumber}')
                         dataLead = {
-                            "contact": "<YOUR GROUP OR CONTACT NUMBER TO GET NOTIFIED>",
-                            'message': f'[{DEALERSHIP}] Lead encontrado: {leadDate} | {leadClient} | {leadCar} | {leadColor}'
+                            "contact": "554888696951-1534418585@g.us",
+                            'message': '['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor
                         }
-                        print(f'[{DEALERSHIP}] Lead encontrado: {leadDate} | {leadClient} | {leadCar} | {leadColor}')
+                        print('['+DEALERSHIP+'] ' + 'Lead encontrado: ' + leadDate + ' | ' + leadClient + ' | ' + leadCar + ' | ' + leadColor)
                         requests.post(url, headers=headers, json=dataLead)
                         time.sleep(2)
+                        print(f'2nLeads: {nLeads}')
+                        print(f'2lastRunNLeads: {lastRunNLeads}')
+                        print(f'2lastClient: {lastLeadClientAux}')
+                        
+                        lastLeadClient = leadClient
+                        lastLeadDate = leadDate
+                    
                     nLeads += 1
-                    print(nLeads)
-                else:
-                    nLeads -= 1
-                    print('nLeads: '+str(nLeads))
-                    print('lastRunNLeads: '+str(lastRunNLeads))
-                    if nLeads == 0:
-                        boolLead = True
-                        print('Nenhum lead encontrado.')
-                    elif lastRunNLeads == nLeads:
-                        boolLead = False
-                    else:
-                        if lastRunNLeads == 0:
-                            boolLead = False
-                        else:
-                            boolLead = True
-        
+                    elementExists = frame.query_selector(f'tr#W0073GridContainerRow_{str(nLeads).zfill(4)}')
+            else:
+                print('Nenhum Lead encontrado.')
+                print(f'nLeads: {nLeads}')
+                print(f'lastRunNLeads: {lastRunNLeads}')
+                print(f'lastClient: {lastLeadClient}')
+                nLeads = 0
+
         except Exception as e:
             msg = f'Erro ao processar tabela de leads: {e}'
             error_exception(msg)
 
-        lastRunNLeads = nLeads
-        set_last_run_n_leads(lastRunNLeads)
+        lastRunNLeads = nLeads - 1 if (nLeads - 1) >= 0 else 0
+        set_last_run_n_leads(lastRunNLeads, lastLeadClient, lastLeadDate)
             
         #### BYPASS FOR EXPIRING SESSION (IF RUNNING WITHOUT LOGOUT) ####
         # elementVisible = page.is_visible('tbody.x-btn-small.x-btn-icon-small-left #ext-gen231')
