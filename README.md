@@ -39,7 +39,7 @@ Replace `<Your_DealerNet_Username>`, `<Your_DealerNet_Password>`, and `<Your_Wha
 
 ## Configuration
 
-- Adjust constants in the script such as `WAIT_TIME`, `LOGIN_URL`, `DEALERNET_USERNAME`, `DEALERSHIP`, and `url` according to your setup.
+- Adjust constants in the script such as `WAIT_TIME`, `LOGIN_URL`, `DEALERNET_USERNAME`, `DEALERSHIP`, `url` and your contact number/url  according to your setup.
 
 ## Running the Script
 
